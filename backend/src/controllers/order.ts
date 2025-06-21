@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from 'express'
 import { FilterQuery, Error as MongooseError, Types } from 'mongoose'
+import { JSDOM } from 'jsdom'
+import DOMPurify from 'dompurify'
 import BadRequestError from '../errors/bad-request-error'
 import NotFoundError from '../errors/not-found-error'
 import Order, { IOrder } from '../models/order'
@@ -33,8 +35,7 @@ export const getOrders = async (
         } = req.query;
 
         const MAX_LIMIT = 10;
-        if(Number(limit)>MAX_LIMIT) limit = MAX_LIMIT;
-
+        if(Number(limit)>MAX_LIMIT)  limit = MAX_LIMIT;
         const filters: FilterQuery<Partial<IOrder>> = {}
 
         if (status) {
@@ -297,6 +298,8 @@ export const getOrderCurrentUserByNumber = async (
 }
 
 // POST /product
+const {window} = new JSDOM('');
+const purify = DOMPurify(window);
 export const createOrder = async (
     req: Request,
     res: Response,
@@ -309,6 +312,8 @@ export const createOrder = async (
         const { address, payment, phone, total, email, items, comment } =
             req.body
 
+        const sanitizedComment = comment ? purify.sanitize(comment as string) : undefined;
+        
         items.forEach((id: Types.ObjectId) => {
             const product = products.find((p) => p._id.equals(id))
             if (!product) {
@@ -330,7 +335,7 @@ export const createOrder = async (
             payment,
             phone,
             email,
-            comment,
+            comment: sanitizedComment,
             customer: userId,
             deliveryAddress: address,
         })
