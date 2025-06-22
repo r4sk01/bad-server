@@ -7,4 +7,7 @@ export const limiter = rateLimit({
     limit: 30,
     standardHeaders: true,
     legacyHeaders: false,
+    message: {
+        error: 'Слишком много запросов с IP адреса. Попробуйте позже.'
+    }
 })
