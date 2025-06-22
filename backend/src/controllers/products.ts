@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from 'express'
 import { constants } from 'http2'
 import { Error as MongooseError } from 'mongoose'
 import { join } from 'path'
+import { JSDOM } from 'jsdom'
+import DOMPurify from 'dompurify'
 import BadRequestError from '../errors/bad-request-error'
 import ConflictError from '../errors/conflict-error'
 import NotFoundError from '../errors/not-found-error'
@@ -16,6 +18,8 @@ const getProducts = async (req: Request, res: Response, next: NextFunction) => {
             skip: (Number(page) - 1) * Number(limit),
             limit: Number(limit),
         }
+        const MAX_LIMIT = 10
+        if (Number(limit) > MAX_LIMIT) options.limit = MAX_LIMIT
         const products = await Product.find({}, null, options)
         const totalProducts = await Product.countDocuments({})
         const totalPages = Math.ceil(totalProducts / Number(limit))
@@ -32,6 +36,8 @@ const getProducts = async (req: Request, res: Response, next: NextFunction) => {
         return next(err)
     }
 }
+const { window } = new JSDOM('')
+const purify = DOMPurify(window)
 
 // POST /product
 const createProduct = async (
@@ -51,12 +57,18 @@ const createProduct = async (
             )
         }
 
+        const sanitizedDescription = description
+            ? purify.sanitize(description as string)
+            : ''
+
+        const sanitizedTitle = title ? purify.sanitize(title as string) : ''
+
         const product = await Product.create({
-            description,
+            description: sanitizedDescription,
             image,
             category,
             price,
-            title,
+            title: sanitizedTitle,
         })
         return res.status(constants.HTTP_STATUS_CREATED).send(product)
     } catch (error) {
