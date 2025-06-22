@@ -135,7 +135,7 @@ const logout = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
-// GET  /auth/token
+// GET /auth/token
 const refreshAccessToken = async (
     req: Request,
     res: Response,
